@@ -1,7 +1,7 @@
 {
   "name": "May Bike ERP",
   "short_name": "May Bike",
-  "description": "Sistema May Bike para loja, oficina, OS, vendas, estoque e financeiro.",
+  "description": "Sistema May Bike V12 para loja, oficina, OS, vendas, estoque, financeiro, contas e relatórios.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
