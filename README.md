@@ -1,15 +1,15 @@
-# May Bike ERP V12 PWA
+May Bike V15 ERP PWA
 
-Versão PWA instalável da May Bike com Firebase já configurado no projeto maybike-d8a6d.
+Atualização focada em controle profissional de caixa e gestão:
+- Abertura/reforço de caixa diário
+- Sangria e suprimento
+- Fechamento com dinheiro contado e diferença automática
+- Relatório diário por forma de pagamento: dinheiro, PIX, débito, crédito e a prazo
+- Conciliação de PIX/cartões
+- Taxas de cartão/PIX configuráveis
+- DRE simplificado mensal
+- Inventário de estoque com ajuste físico
+- Histórico de inventários
+- Mantém o mesmo Firebase e preserva dados já cadastrados
 
-## Atualização sem perder dados
-Publique estes arquivos substituindo os atuais no mesmo repositório GitHub Pages. O sistema mantém o mesmo Firebase e o mesmo documento de dados: `maybike/state_v9`.
-
-## Arquivos
-- index.html
-- style.css
-- app.js
-- manifest.json
-- service-worker.js
-- pwa.js
-- icons/
+Atualização: extraia o ZIP e envie os arquivos ao mesmo repositório GitHub Pages, substituindo os atuais.
