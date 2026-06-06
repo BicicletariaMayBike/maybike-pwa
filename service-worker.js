@@ -1,4 +1,4 @@
-const CACHE_NAME = 'maybike-v15-pwa-cache-v1';
+const CACHE_NAME = 'maybike-v15-1-pwa-cache-v2';
 const APP_SHELL = [
   './',
   './index.html',

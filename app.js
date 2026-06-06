@@ -274,3 +274,83 @@ function produtosParados(dias){let limite=new Date();limite.setDate(limite.getDa
 function ultimoMovProduto(prodId){let datas=[];st.vendas.forEach(v=>(v.itens||[]).forEach(i=>{if(i.prodId==prodId&&v.data)datas.push(v.data)}));st.os.forEach(o=>(o.pecas||[]).forEach(i=>{if(i.prodId==prodId&&o.data)datas.push(o.data)}));return datas.sort().pop()}
 function curvaABC(){let arr=st.estoque.map(e=>{let valor=0;st.vendas.forEach(v=>(v.itens||[]).forEach(i=>{if(i.prodId==e.id)valor+=n(i.qtd)*n(i.preco)}));return {id:e.id,valor}}).sort((a,b)=>b.valor-a.valor);let total=arr.reduce((a,b)=>a+b.valor,0)||1,acc=0,out={A:{qtd:0,valor:0},B:{qtd:0,valor:0},C:{qtd:0,valor:0}};arr.forEach(x=>{acc+=x.valor;let pct=acc/total;let k=pct<=.8?'A':pct<=.95?'B':'C';out[k].qtd++;out[k].valor+=x.valor});return out}
 function relatorios(){let ent=st.caixa.filter(x=>x.tipo=='Entrada').reduce((a,b)=>a+n(b.valor),0),sai=st.caixa.filter(x=>x.tipo=='Saída').reduce((a,b)=>a+n(b.valor),0),cost=st.estoque.reduce((a,e)=>a+n(e.qtd)*calcProduto(e).custoReal,0);let rec=contasAbertas('A Receber').reduce((a,c)=>a+totalConta(c),0),pag=contasAbertas('A Pagar').reduce((a,c)=>a+totalConta(c),0),res=rec-pag;let funcs=st.funcionarios.map(f=>{let q=st.os.filter(o=>o.funcionarioId==f.id).length, fat=st.vendas.filter(v=>v.funcionarioId==f.id||v.funcionario==f.nome).reduce((a,v)=>a+n(v.total),0), com=comissaoFunc(f);return `<tr><td>${f.cod||'—'}</td><td>${f.nome}</td><td>${f.cargo||'—'}</td><td>${q}</td><td>${money(fat)}</td><td>${money(com)}</td></tr>`}).join('');let abc=curvaABC(), parados=produtosParados(180);let rank=servicoRanking().map(([s,q],i)=>`<tr><td>${i+1}º</td><td>${s}</td><td>${q}</td></tr>`).join('');let months={};st.vendas.forEach(v=>{let k=monthKey(v.data);months[k]=months[k]||{fat:0,lucro:0};months[k].fat+=n(v.total);months[k].lucro+=lucroVenda(v)});let mesRows=Object.entries(months).sort().reverse().map(([k,v])=>`<tr><td>${k}</td><td>${money(v.fat)}</td><td>${money(v.lucro)}</td></tr>`).join('');$('p-relatorios').innerHTML=`<div class="grid3"><div class="metric"><div class="label">A receber aberto</div><div class="value green">${money(rec)}</div></div><div class="metric"><div class="label">A pagar aberto</div><div class="value red">${money(pag)}</div></div><div class="metric"><div class="label">Resultado por contas</div><div class="value ${res>=0?'green':'red'}">${res>=0?'Lucro ':'Prejuízo '}${money(Math.abs(res))}</div></div></div><div class="grid3"><div class="metric"><div class="label">Entradas no caixa</div><div class="value green">${money(ent)}</div></div><div class="metric"><div class="label">Saídas no caixa</div><div class="value red">${money(sai)}</div></div><div class="metric"><div class="label">Capital parado em estoque</div><div class="value gold">${money(cost)}</div></div></div><div class="toolbar" style="margin-bottom:14px"><button class="btn" onclick="exportRelatoriosCSV()">Exportar relatório CSV</button></div><div class="grid2"><div class="card"><h3>Relatório de comissão</h3><table class="table"><thead><tr><th>Código</th><th>Funcionário</th><th>Cargo</th><th>OS</th><th>Faturamento</th><th>Comissão</th></tr></thead><tbody>${funcs||'<tr><td colspan="6" class="empty">Sem funcionários.</td></tr>'}</tbody></table></div><div class="card"><h3>Ranking de serviços mais executados</h3><table class="table"><thead><tr><th>#</th><th>Serviço</th><th>Qtd.</th></tr></thead><tbody>${rank||'<tr><td colspan="3" class="empty">Sem serviços.</td></tr>'}</tbody></table></div></div><div class="grid2"><div class="card"><h3>Curva ABC</h3><table class="table"><thead><tr><th>Classe</th><th>Produtos</th><th>Faturamento</th></tr></thead><tbody><tr><td>A</td><td>${abc.A.qtd}</td><td>${money(abc.A.valor)}</td></tr><tr><td>B</td><td>${abc.B.qtd}</td><td>${money(abc.B.valor)}</td></tr><tr><td>C</td><td>${abc.C.qtd}</td><td>${money(abc.C.valor)}</td></tr></tbody></table></div><div class="card"><h3>Produtos parados 180+ dias</h3><table class="table"><thead><tr><th>Código</th><th>Produto</th><th>Qtd</th><th>Capital</th></tr></thead><tbody>${parados.slice(0,20).map(e=>`<tr><td>${e.cod}</td><td>${e.desc}</td><td>${e.qtd}</td><td>${money(n(e.qtd)*calcProduto(e).custoReal)}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">Sem produtos parados.</td></tr>'}</tbody></table></div></div><div class="grid2"><div class="card"><h3>Faturamento mês a mês</h3><table class="table"><thead><tr><th>Mês</th><th>Faturamento</th><th>Lucro estimado</th></tr></thead><tbody>${mesRows||'<tr><td colspan="3" class="empty">Sem vendas.</td></tr>'}</tbody></table></div><div class="card"><h3>Resumo geral V15</h3><p>Clientes: <b>${st.clientes.length}</b></p><p>Funcionários: <b>${st.funcionarios.length}</b></p><p>Mão de obra: <b>${(st.maoObra||[]).length}</b></p><p>OS: <b>${st.os.length}</b></p><p>Vendas: <b>${st.vendas.length}</b></p><p>Custo em estoque: <b>${money(cost)}</b></p></div></div>`}
+
+/* ===== PATCH V15.1 — CORREÇÃO ABA CONTAS A PAGAR/RECEBER ===== */
+function contas(){
+  try{ gerarRecorrentes(); }catch(e){ console.warn('recorrentes:', e); }
+  st.contas = st.contas || [];
+  st.config = st.config || {multaPercent:2, jurosMesPercent:1};
+  const abertas = st.contas.filter(c=>c.status!=='Pago');
+  const rec = abertas.filter(c=>c.tipo==='A Receber').reduce((a,c)=>a+totalConta(c),0);
+  const pag = abertas.filter(c=>c.tipo==='A Pagar').reduce((a,c)=>a+totalConta(c),0);
+  const vencidas = abertas.filter(c=>daysLate(c.venc)>0).length;
+  const hojeMs = new Date(today()+'T00:00:00').getTime();
+  const aVencer = abertas.filter(c=>{
+    if(!c.venc) return false;
+    const diff = (new Date(c.venc+'T00:00:00').getTime()-hojeMs)/86400000;
+    return diff>=0 && diff<=5;
+  }).length;
+  const filtro = `<div class="toolbar" style="margin-bottom:14px">
+    <button class="btn goldbtn" onclick="openConta()">+ Nova conta</button>
+    <button class="btn" onclick="openRecorrente()">+ Conta mensal</button>
+    <button class="btn" onclick="exportContasCSV()">Exportar CSV</button>
+  </div>`;
+  const rows = st.contas.slice().sort((a,b)=>(a.venc||'9999').localeCompare(b.venc||'9999')).map(c=>{
+    const cls = c.status==='Pago'?'':(c.tipo==='A Receber'?'green':'red');
+    const valor = totalConta(c);
+    return `<tr>
+      <td><b>${c.cod||'—'}</b></td>
+      <td>${br(c.venc)}</td>
+      <td><span class="badge ${c.tipo==='A Receber'?'b3':'b5'}">${c.tipo}</span></td>
+      <td>${c.cliente||c.fornecedor||'—'}</td>
+      <td>${c.desc||'—'}</td>
+      <td class="${cls}"><b>${money(valor)}</b></td>
+      <td>${statusConta(c)}</td>
+      <td>${c.status==='Pago'?`<small>Pago em ${br(c.dataPago)||'—'}</small>`:`<button class="btn sm goldbtn" onclick="payConta('${c.id}')">Marcar pago/recebido</button>`} <button class="btn redbtn sm" onclick="del('contas','${c.id}')">Excluir</button></td>
+    </tr>`;
+  }).join('');
+  $('p-contas').innerHTML = `
+    <div class="grid4">
+      <div class="metric"><div class="label">A receber em aberto</div><div class="value green">${money(rec)}</div></div>
+      <div class="metric"><div class="label">A pagar em aberto</div><div class="value red">${money(pag)}</div></div>
+      <div class="metric"><div class="label">Fluxo projetado</div><div class="value ${rec-pag>=0?'green':'red'}">${money(rec-pag)}</div></div>
+      <div class="metric"><div class="label">Vencidas / a vencer</div><div class="value gold">${vencidas} / ${aVencer}</div></div>
+    </div>
+    <div class="notice">V15.1: aba Contas corrigida. Contas a prazo vindas das vendas aparecem aqui automaticamente, com juros/multa calculados quando passam do vencimento.</div>
+    ${filtro}
+    <div class="card"><div class="head"><h3>Contas a pagar e a receber</h3><span class="pill">${st.contas.length} registro(s)</span></div>
+      <table class="table"><thead><tr><th>Código</th><th>Vencimento</th><th>Tipo</th><th>Cliente/Fornecedor</th><th>Descrição</th><th>Valor c/ juros</th><th>Status</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="8" class="empty">Nenhuma conta cadastrada.</td></tr>'}</tbody></table>
+    </div>
+    <div class="card"><div class="head"><h3>Contas mensais recorrentes</h3><button class="btn" onclick="openRecorrente()">+ Recorrente</button></div>${recorrentesHTML()}</div>`;
+}
+function recorrentesHTML(){
+  st.recorrentes = st.recorrentes || [];
+  if(!st.recorrentes.length) return '<div class="empty">Nenhuma conta mensal recorrente cadastrada.</div>';
+  return `<table class="table"><thead><tr><th>Tipo</th><th>Dia</th><th>Descrição</th><th>Valor</th><th>Status</th><th></th></tr></thead><tbody>${st.recorrentes.map(r=>`<tr><td>${r.tipo}</td><td>Dia ${r.dia||5}</td><td>${r.desc||'—'}</td><td>${money(r.valor)}</td><td>${r.ativo?'Ativa':'Inativa'}</td><td><button class="btn sm" onclick="toggleRecorrente('${r.id}')">${r.ativo?'Desativar':'Ativar'}</button> <button class="btn redbtn sm" onclick="delRecorrente('${r.id}')">Excluir</button></td></tr>`).join('')}</tbody></table>`;
+}
+function payConta(id){
+  const c = st.contas.find(x=>x.id===id); if(!c) return alert('Conta não encontrada.');
+  const valor = totalConta(c);
+  modal(`<div class="mhead"><h3>${c.tipo==='A Receber'?'Receber conta':'Pagar conta'} ${c.cod||''}</h3><button class="btn" onclick="closeM()">Fechar</button></div>
+    <div class="notice"><b>${c.desc||'Conta'}</b><br>Vencimento: ${br(c.venc)}<br>Valor atualizado: <b>${money(valor)}</b></div>
+    <div class="form2"><div class="field"><label>Data</label><input id="pc_data" type="date" value="${today()}"></div><div class="field"><label>Forma</label><select id="pc_forma"><option>Dinheiro</option><option>PIX</option><option>Débito</option><option>Crédito</option><option>Transferência</option></select></div></div>
+    <div class="field"><label>Observação</label><input id="pc_obs" placeholder="Opcional"></div>
+    <div class="actions"><button class="btn goldbtn" onclick="confirmPayConta('${id}')">Confirmar</button></div>`);
+}
+function confirmPayConta(id){
+  const c = st.contas.find(x=>x.id===id); if(!c) return;
+  const valor = totalConta(c); const forma = $('pc_forma').value; const data = $('pc_data').value || today();
+  c.status='Pago'; c.dataPago=data; c.formaPago=forma; c.valorPago=valor; c.obsPago=$('pc_obs').value;
+  st.caixa = st.caixa || [];
+  st.caixa.push({id:uid(),data,tipo:c.tipo==='A Receber'?'Entrada':'Saída',desc:`${c.cod||''} - ${c.desc||''}`,cat:c.tipo,valor,forma});
+  logAudit('Conta baixada',`${c.cod||''} - ${c.desc||''}`);
+  closeM(); save();
+}
+function toggleRecorrente(id){let r=(st.recorrentes||[]).find(x=>x.id===id); if(!r)return; r.ativo=!r.ativo; save()}
+function delRecorrente(id){if(!confirm('Excluir recorrência? As contas já geradas permanecem.'))return; st.recorrentes=(st.recorrentes||[]).filter(x=>x.id!==id); save()}
+function exportContasCSV(){
+  const rows=[['codigo','vencimento','tipo','cliente_fornecedor','descricao','valor_atualizado','status','data_pago','forma_pago']];
+  (st.contas||[]).forEach(c=>rows.push([c.cod||'',c.venc||'',c.tipo||'',c.cliente||c.fornecedor||'',c.desc||'',String(totalConta(c)).replace('.',','),c.status||'',c.dataPago||'',c.formaPago||'']));
+  const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='maybike_contas.csv'; a.click();
+}

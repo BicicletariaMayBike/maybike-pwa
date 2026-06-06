@@ -1,4 +1,4 @@
-May Bike V15 ERP PWA
+May Bike V15.1 ERP PWA
 
 Atualização focada em controle profissional de caixa e gestão:
 - Abertura/reforço de caixa diário
