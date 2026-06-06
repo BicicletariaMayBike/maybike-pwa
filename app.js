@@ -7,7 +7,7 @@ let st={users:[{u:'admin',p:'admin',nome:'Douglas',perfil:'Administrador'}],clie
 function loadLocal(){try{let d=localStorage.getItem(STORE); if(d) st={...st,...JSON.parse(d)}}catch(e){}}function saveLocal(){localStorage.setItem(STORE,JSON.stringify(st))}
 async function loadCloud(){loadLocal(); if(cloudOK){try{let doc=await db.collection('maybike').doc('state_v9').get(); if(doc.exists){st={...st,...doc.data()};migrateV13();saveLocal()} else migrateV13(); $('cloud').textContent='☁️ Nuvem conectada'}catch(e){migrateV13();$('cloud').textContent='⚠️ Nuvem sem permissão';console.warn(e)}}else {migrateV13();$('cloud').textContent='💾 Local'}}
 async function save(){saveLocal(); if(cloudOK){try{await db.collection('maybike').doc('state_v9').set(JSON.parse(JSON.stringify(st)));$('cloud').textContent='☁️ Nuvem conectada'}catch(e){$('cloud').textContent='⚠️ Erro ao salvar';console.warn(e)}} render(current)}
-const pages=[['dashboard','📊 Dashboard'],['clientes','👥 Clientes'],['bicicletas','🚲 Bicicletas'],['funcionarios','🧑‍🔧 Funcionários'],['maoobra','🛠️ Mão de Obra'],['estoque','📦 Estoque'],['os','🔧 Ordens de Serviço'],['agenda','📅 Agenda'],['vendas','🛒 Vendas / Recebimento'],['caixa','💰 Caixa'],['contas','🧾 Contas'],['crm','📱 CRM Revisões'],['relatorios','📈 Relatórios'],['auditoria','🔐 Auditoria'],['config','⚙️ Configurações']]; let current='dashboard';
+const pages=[['dashboard','📊 Dashboard'],['clientes','👥 Clientes'],['bicicletas','🚲 Bicicletas'],['funcionarios','🧑‍🔧 Funcionários'],['maoobra','🛠️ Mão de Obra'],['estoque','📦 Estoque'],['os','🔧 Ordens de Serviço'],['agenda','📅 Agenda'],['vendas','🛒 Vendas / Recebimento'],['caixa','💰 Caixa'],['contas','🧾 Contas'],['garantias','🛡️ Garantias'],['crm','📱 CRM Revisões'],['relatorios','📈 Relatórios'],['auditoria','🔐 Auditoria'],['config','⚙️ Configurações']]; let current='dashboard';
 function nav(){ $('nav').innerHTML=pages.map(p=>`<button id="n-${p[0]}" onclick="go('${p[0]}')">${p[1]}</button>`).join('') } function go(p){current=p;document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$('p-'+p).classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));$('n-'+p).classList.add('active');$('title').textContent=pages.find(x=>x[0]==p)[1].replace(/^.. /,'');render(p)}
 async function hashPass(p){const enc=new TextEncoder().encode(String(p));const buf=await crypto.subtle.digest('SHA-256',enc);return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('')}async function doLogin(){let u=$('user').value,p=$('pass').value,h=await hashPass(p);let user=st.users.find(x=>x.u==u&&(x.pHash==h||x.p==p));if(user){sessionStorage.mb='1';sessionStorage.mbUser=JSON.stringify({u:user.u,nome:user.nome||user.u,perfil:user.perfil||'Administrador'});$('login').style.display='none';$('app').style.display='block';go('dashboard')}else alert('Usuário ou senha incorretos')}function logout(){sessionStorage.removeItem('mb');sessionStorage.removeItem('mbUser');location.reload()}
 function statusBadge(s){let c=s=='Faturada'?'b4':s=='Pronta para retirada'?'b3':s=='Aguardando aprovação'?'b2':s=='Cancelada'?'b5':'b1';return `<span class="badge ${c}">${s}</span>`} function calcOS(o){let p=(o.pecas||[]).reduce((a,i)=>a+n(i.qtd)*n(i.preco),0),m=(o.mao||[]).reduce((a,i)=>a+n(i.valor),0),d=n(o.desc);return {pecas:p,mao:m,total:p+m-d}}
@@ -275,7 +275,7 @@ function ultimoMovProduto(prodId){let datas=[];st.vendas.forEach(v=>(v.itens||[]
 function curvaABC(){let arr=st.estoque.map(e=>{let valor=0;st.vendas.forEach(v=>(v.itens||[]).forEach(i=>{if(i.prodId==e.id)valor+=n(i.qtd)*n(i.preco)}));return {id:e.id,valor}}).sort((a,b)=>b.valor-a.valor);let total=arr.reduce((a,b)=>a+b.valor,0)||1,acc=0,out={A:{qtd:0,valor:0},B:{qtd:0,valor:0},C:{qtd:0,valor:0}};arr.forEach(x=>{acc+=x.valor;let pct=acc/total;let k=pct<=.8?'A':pct<=.95?'B':'C';out[k].qtd++;out[k].valor+=x.valor});return out}
 function relatorios(){let ent=st.caixa.filter(x=>x.tipo=='Entrada').reduce((a,b)=>a+n(b.valor),0),sai=st.caixa.filter(x=>x.tipo=='Saída').reduce((a,b)=>a+n(b.valor),0),cost=st.estoque.reduce((a,e)=>a+n(e.qtd)*calcProduto(e).custoReal,0);let rec=contasAbertas('A Receber').reduce((a,c)=>a+totalConta(c),0),pag=contasAbertas('A Pagar').reduce((a,c)=>a+totalConta(c),0),res=rec-pag;let funcs=st.funcionarios.map(f=>{let q=st.os.filter(o=>o.funcionarioId==f.id).length, fat=st.vendas.filter(v=>v.funcionarioId==f.id||v.funcionario==f.nome).reduce((a,v)=>a+n(v.total),0), com=comissaoFunc(f);return `<tr><td>${f.cod||'—'}</td><td>${f.nome}</td><td>${f.cargo||'—'}</td><td>${q}</td><td>${money(fat)}</td><td>${money(com)}</td></tr>`}).join('');let abc=curvaABC(), parados=produtosParados(180);let rank=servicoRanking().map(([s,q],i)=>`<tr><td>${i+1}º</td><td>${s}</td><td>${q}</td></tr>`).join('');let months={};st.vendas.forEach(v=>{let k=monthKey(v.data);months[k]=months[k]||{fat:0,lucro:0};months[k].fat+=n(v.total);months[k].lucro+=lucroVenda(v)});let mesRows=Object.entries(months).sort().reverse().map(([k,v])=>`<tr><td>${k}</td><td>${money(v.fat)}</td><td>${money(v.lucro)}</td></tr>`).join('');$('p-relatorios').innerHTML=`<div class="grid3"><div class="metric"><div class="label">A receber aberto</div><div class="value green">${money(rec)}</div></div><div class="metric"><div class="label">A pagar aberto</div><div class="value red">${money(pag)}</div></div><div class="metric"><div class="label">Resultado por contas</div><div class="value ${res>=0?'green':'red'}">${res>=0?'Lucro ':'Prejuízo '}${money(Math.abs(res))}</div></div></div><div class="grid3"><div class="metric"><div class="label">Entradas no caixa</div><div class="value green">${money(ent)}</div></div><div class="metric"><div class="label">Saídas no caixa</div><div class="value red">${money(sai)}</div></div><div class="metric"><div class="label">Capital parado em estoque</div><div class="value gold">${money(cost)}</div></div></div><div class="toolbar" style="margin-bottom:14px"><button class="btn" onclick="exportRelatoriosCSV()">Exportar relatório CSV</button></div><div class="grid2"><div class="card"><h3>Relatório de comissão</h3><table class="table"><thead><tr><th>Código</th><th>Funcionário</th><th>Cargo</th><th>OS</th><th>Faturamento</th><th>Comissão</th></tr></thead><tbody>${funcs||'<tr><td colspan="6" class="empty">Sem funcionários.</td></tr>'}</tbody></table></div><div class="card"><h3>Ranking de serviços mais executados</h3><table class="table"><thead><tr><th>#</th><th>Serviço</th><th>Qtd.</th></tr></thead><tbody>${rank||'<tr><td colspan="3" class="empty">Sem serviços.</td></tr>'}</tbody></table></div></div><div class="grid2"><div class="card"><h3>Curva ABC</h3><table class="table"><thead><tr><th>Classe</th><th>Produtos</th><th>Faturamento</th></tr></thead><tbody><tr><td>A</td><td>${abc.A.qtd}</td><td>${money(abc.A.valor)}</td></tr><tr><td>B</td><td>${abc.B.qtd}</td><td>${money(abc.B.valor)}</td></tr><tr><td>C</td><td>${abc.C.qtd}</td><td>${money(abc.C.valor)}</td></tr></tbody></table></div><div class="card"><h3>Produtos parados 180+ dias</h3><table class="table"><thead><tr><th>Código</th><th>Produto</th><th>Qtd</th><th>Capital</th></tr></thead><tbody>${parados.slice(0,20).map(e=>`<tr><td>${e.cod}</td><td>${e.desc}</td><td>${e.qtd}</td><td>${money(n(e.qtd)*calcProduto(e).custoReal)}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">Sem produtos parados.</td></tr>'}</tbody></table></div></div><div class="grid2"><div class="card"><h3>Faturamento mês a mês</h3><table class="table"><thead><tr><th>Mês</th><th>Faturamento</th><th>Lucro estimado</th></tr></thead><tbody>${mesRows||'<tr><td colspan="3" class="empty">Sem vendas.</td></tr>'}</tbody></table></div><div class="card"><h3>Resumo geral V15</h3><p>Clientes: <b>${st.clientes.length}</b></p><p>Funcionários: <b>${st.funcionarios.length}</b></p><p>Mão de obra: <b>${(st.maoObra||[]).length}</b></p><p>OS: <b>${st.os.length}</b></p><p>Vendas: <b>${st.vendas.length}</b></p><p>Custo em estoque: <b>${money(cost)}</b></p></div></div>`}
 
-/* ===== PATCH V15.1 — CORREÇÃO ABA CONTAS A PAGAR/RECEBER ===== */
+/* ===== PATCH V15.2 — CORREÇÃO ABA CONTAS A PAGAR/RECEBER ===== */
 function contas(){
   try{ gerarRecorrentes(); }catch(e){ console.warn('recorrentes:', e); }
   st.contas = st.contas || [];
@@ -316,7 +316,7 @@ function contas(){
       <div class="metric"><div class="label">Fluxo projetado</div><div class="value ${rec-pag>=0?'green':'red'}">${money(rec-pag)}</div></div>
       <div class="metric"><div class="label">Vencidas / a vencer</div><div class="value gold">${vencidas} / ${aVencer}</div></div>
     </div>
-    <div class="notice">V15.1: aba Contas corrigida. Contas a prazo vindas das vendas aparecem aqui automaticamente, com juros/multa calculados quando passam do vencimento.</div>
+    <div class="notice">V15.2: aba Contas corrigida. Contas a prazo vindas das vendas aparecem aqui automaticamente, com juros/multa calculados quando passam do vencimento.</div>
     ${filtro}
     <div class="card"><div class="head"><h3>Contas a pagar e a receber</h3><span class="pill">${st.contas.length} registro(s)</span></div>
       <table class="table"><thead><tr><th>Código</th><th>Vencimento</th><th>Tipo</th><th>Cliente/Fornecedor</th><th>Descrição</th><th>Valor c/ juros</th><th>Status</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="8" class="empty">Nenhuma conta cadastrada.</td></tr>'}</tbody></table>
@@ -354,3 +354,106 @@ function exportContasCSV(){
   const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(';')).join('\n');
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='maybike_contas.csv'; a.click();
 }
+
+/* ===== PATCH V15.2 — LOGO OFICIAL + GARANTIAS SEPARADAS ===== */
+try{
+  st.config = st.config || {};
+  if(st.config.garantiaPecasDias==null) st.config.garantiaPecasDias = 90;
+  if(st.config.garantiaMaoObraDias==null) st.config.garantiaMaoObraDias = 30;
+}catch(e){console.warn('config v15.2',e)}
+
+function garantiaDate(base, dias){ return addDays(base || today(), Number(dias||0)); }
+function warrantyClass(date){
+  if(!date) return 'warranty-warn';
+  const diff=(new Date(date+'T00:00:00')-new Date(today()+'T00:00:00'))/86400000;
+  return diff<0?'warranty-expired':diff<=7?'warranty-warn':'warranty-ok';
+}
+function warrantyText(date){
+  if(!date) return 'Não gerada';
+  const diff=Math.ceil((new Date(date+'T00:00:00')-new Date(today()+'T00:00:00'))/86400000);
+  if(diff<0) return `Vencida em ${br(date)}`;
+  if(diff===0) return `Vence hoje (${br(date)})`;
+  return `Ativa até ${br(date)} (${diff} dias)`;
+}
+function logoPrintHTML(){return `<div class="print-logo-wrap"><img class="logo-mini-print" src="icons/maybike-logo.png"><div><b>WhatsApp:</b> (42) 98842-5435 &nbsp; | &nbsp; <b>E-mail:</b> maybikee@gmail.com</div><div><b>Sua bike. Seu estilo.</b></div></div>`}
+
+const _render_v152 = render;
+render = function(p){ if(p==='garantias') return garantiasPage(); return _render_v152(p); };
+
+const _receberOS_v152_base = receberOS;
+receberOS = function(id){
+  let o=st.os.find(x=>x.id==id); if(!o) return alert('OS não encontrada.');
+  let beforeVendas=(st.vendas||[]).length;
+  _receberOS_v152_base(id);
+  // Se a venda foi criada, registra garantias separadas pela data da venda/faturamento.
+  let v=(st.vendas||[])[st.vendas.length-1];
+  if(v && (st.vendas.length>beforeVendas || v.osId===id)){
+    const base=v.data||today();
+    v.garantiaPecasAte = (o.pecas||[]).length ? garantiaDate(base, st.config.garantiaPecasDias||90) : '';
+    v.garantiaMaoObraAte = (o.mao||[]).length ? garantiaDate(base, st.config.garantiaMaoObraDias||30) : '';
+    v.garantiaTexto = `Peças: ${st.config.garantiaPecasDias||90} dias | Mão de obra: ${st.config.garantiaMaoObraDias||30} dias`;
+    o.garantiaPecasAte = v.garantiaPecasAte;
+    o.garantiaMaoObraAte = v.garantiaMaoObraAte;
+    o.garantiaAte = v.garantiaPecasAte || v.garantiaMaoObraAte || o.garantiaAte;
+    save();
+  }
+};
+
+const _saveVendaRapida_v152_base = typeof saveVendaRapida==='function' ? saveVendaRapida : null;
+if(_saveVendaRapida_v152_base){
+  saveVendaRapida = function(){
+    const before=(st.vendas||[]).length;
+    _saveVendaRapida_v152_base();
+    let v=(st.vendas||[])[st.vendas.length-1];
+    if(v && st.vendas.length>before){
+      v.garantiaPecasAte = garantiaDate(v.data||today(), st.config.garantiaPecasDias||90);
+      v.garantiaTexto = `Peças: ${st.config.garantiaPecasDias||90} dias a partir da venda`;
+      save();
+    }
+  };
+}
+
+function garantiasPage(){
+  st.os=st.os||[]; st.vendas=st.vendas||[];
+  const rows=[];
+  st.os.forEach(o=>{
+    if((o.pecas||[]).length) rows.push({tipo:'Peças',cliente:o.cliente,bike:o.bike,doc:o.cod||('OS'+pad6(o.num||0)),itens:(o.pecas||[]).map(p=>p.nome).join(', '),ate:o.garantiaPecasAte||o.garantiaAte||'',origem:'OS'});
+    if((o.mao||[]).length) rows.push({tipo:'Mão de obra',cliente:o.cliente,bike:o.bike,doc:o.cod||('OS'+pad6(o.num||0)),itens:(o.mao||[]).map(m=>m.desc||m.nome).join(', '),ate:o.garantiaMaoObraAte||'',origem:'OS'});
+  });
+  st.vendas.filter(v=>!v.osId && (v.itens||[]).length).forEach(v=>rows.push({tipo:'Peças',cliente:v.cliente,bike:'—',doc:v.cod||('VD'+pad6(v.num||0)),itens:(v.itens||[]).map(i=>i.nome).join(', '),ate:v.garantiaPecasAte||'',origem:'Venda'}));
+  const ativas=rows.filter(r=>r.ate && new Date(r.ate+'T00:00:00')>=new Date(today()+'T00:00:00')).length;
+  const vencidas=rows.filter(r=>r.ate && new Date(r.ate+'T00:00:00')<new Date(today()+'T00:00:00')).length;
+  const vencendo=rows.filter(r=>{if(!r.ate)return false; const d=(new Date(r.ate+'T00:00:00')-new Date(today()+'T00:00:00'))/86400000; return d>=0 && d<=7;}).length;
+  $('p-garantias').innerHTML=`
+    <div class="grid3"><div class="metric"><div class="label">Garantias ativas</div><div class="value green">${ativas}</div></div><div class="metric"><div class="label">Vencendo em 7 dias</div><div class="value gold">${vencendo}</div></div><div class="metric"><div class="label">Vencidas</div><div class="value red">${vencidas}</div></div></div>
+    <div class="notice"><b>Regra May Bike:</b> peças do estoque têm garantia de <b>${st.config.garantiaPecasDias||90} dias a partir da venda</b>. Mão de obra tem garantia de <b>${st.config.garantiaMaoObraDias||30} dias</b>.</div>
+    <div class="card"><div class="head"><h3>Controle de garantias</h3><span class="pill">${rows.length} registro(s)</span></div><table class="table"><thead><tr><th>Documento</th><th>Tipo</th><th>Cliente</th><th>Bike</th><th>Itens</th><th>Garantia</th><th>Origem</th></tr></thead><tbody>${rows.map(r=>`<tr><td><b>${r.doc}</b></td><td>${r.tipo}</td><td>${r.cliente||'—'}</td><td>${r.bike||'—'}</td><td>${r.itens||'—'}</td><td class="${warrantyClass(r.ate)}">${warrantyText(r.ate)}</td><td>${r.origem}</td></tr>`).join('')||'<tr><td colspan="7" class="empty">Nenhuma garantia registrada ainda. As próximas vendas/OS faturadas gerarão garantias automaticamente.</td></tr>'}</tbody></table></div>`;
+}
+
+printOS = function(id){
+  let o=st.os.find(x=>x.id==id); if(!o) return alert('OS não encontrada.');
+  let t=calcOS(o), cliente=st.clientes.find(c=>c.nome==o.cliente)||{};
+  const pecas=(o.pecas||[]).map(p=>`<tr><td>Peça</td><td>${p.nome}</td><td>${p.qtd}</td><td>${money(p.qtd*p.preco)}</td></tr>`).join('');
+  const mao=(o.mao||[]).map(m=>`<tr><td>Mão de obra</td><td>${m.desc||m.nome}</td><td>1</td><td>${money(m.valor)}</td></tr>`).join('');
+  $('print').innerHTML=`<div style="font-family:Arial,sans-serif;color:#111">${logoPrintHTML()}<div style="text-align:center;border-top:2px solid #111;border-bottom:2px solid #111;padding:8px;margin:8px 0"><h2>ORDEM DE SERVIÇO ${o.cod||('#'+o.num)}</h2></div>
+  <p><b>Cliente:</b> ${o.cliente} &nbsp; <b>CPF:</b> ${cliente.cpf||'—'} &nbsp; <b>WhatsApp:</b> ${cliente.whats||'—'}</p><p><b>Endereço:</b> ${cliente.end||'—'} ${cliente.cidade||''}</p><p><b>Bike:</b> ${o.bike||'—'} &nbsp; <b>Funcionário:</b> ${o.funcionario||'—'} &nbsp; <b>Status:</b> ${o.status}</p><p><b>Defeito relatado:</b> ${o.defeito||'—'}</p>
+  <table style="width:100%;border-collapse:collapse" border="1" cellpadding="6"><thead><tr><th>Tipo</th><th>Descrição</th><th>Qtd</th><th>Total</th></tr></thead><tbody>${pecas}${mao}<tr><td colspan="3"><b>Desconto</b></td><td>${money(o.desc||0)}</td></tr><tr><td colspan="3"><b>TOTAL</b></td><td><b>${money(t.total)}</b></td></tr></tbody></table>
+  <div style="margin-top:12px;border:1px solid #111;padding:10px"><h3>Garantias</h3><p><b>Peças:</b> ${st.config.garantiaPecasDias||90} dias a partir da venda${o.garantiaPecasAte?' — válida até '+br(o.garantiaPecasAte):''}.</p><p><b>Mão de obra:</b> ${st.config.garantiaMaoObraDias||30} dias${o.garantiaMaoObraAte?' — válida até '+br(o.garantiaMaoObraAte):''}.</p><small>Garantia válida mediante apresentação desta OS. Não cobre mau uso, queda, desgaste natural ou alterações feitas por terceiros.</small></div>
+  <div class="print-term"><h3>Termo de retirada</h3><p>Declaro que recebi a bicicleta/equipamento acima em condições conferidas, ciente dos serviços realizados, valores, prazos de garantia e orientações da May Bike.</p><p><b>Assinatura/Aceite digital:</b> ${o.assinatura||'____________________________________'}</p></div>
+  <br><p>Assinatura cliente: ________________________________</p><p>Assinatura loja: ___________________________________</p></div>`;
+  window.print();
+};
+
+printRec = function(id){
+  let v=st.vendas.find(x=>x.id==id); if(!v) return alert('Venda não encontrada.');
+  $('print').innerHTML=`<div style="font-family:Arial,sans-serif;color:#111">${logoPrintHTML()}<div style="text-align:center;border-top:2px solid #111;border-bottom:2px solid #111;padding:8px;margin:8px 0"><h2>RECIBO ${v.cod||('#'+v.num)}</h2></div><p><b>Cliente:</b> ${v.cliente} &nbsp; <b>Origem:</b> ${v.origem||'Venda'}</p><p><b>Pagamento:</b> ${v.forma||'—'} ${v.obs||''}</p><p><b>Status:</b> ${v.status||'Recebida'}</p><h2>Total da venda: ${money(v.total)}</h2><h2>Recebido agora: ${money(v.entrada??v.total)}</h2><div style="border:1px solid #111;padding:10px;margin-top:12px"><b>Garantia:</b><br>Peças: ${st.config.garantiaPecasDias||90} dias a partir da venda${v.garantiaPecasAte?' — até '+br(v.garantiaPecasAte):''}.<br>Mão de obra: ${st.config.garantiaMaoObraDias||30} dias quando vinculada à OS${v.garantiaMaoObraAte?' — até '+br(v.garantiaMaoObraAte):''}.</div></div>`;
+  window.print();
+};
+
+const _config_v152_base = config;
+config = function(){
+  _config_v152_base();
+  const box=$('p-config');
+  if(!box) return;
+  box.insertAdjacentHTML('afterbegin', `<div class="card"><div class="head"><h3>V15.2 — Logo e garantias</h3><span class="pill">May Bike</span></div><div class="notice">Logo oficial integrada no login, menu e documentos. Garantia padrão: peças ${st.config.garantiaPecasDias||90} dias a partir da venda; mão de obra ${st.config.garantiaMaoObraDias||30} dias.</div><div class="form2"><div class="field"><label>Garantia peças do estoque (dias)</label><input id="cfg_gar_pecas" type="number" value="${st.config.garantiaPecasDias||90}"></div><div class="field"><label>Garantia mão de obra (dias)</label><input id="cfg_gar_mao" type="number" value="${st.config.garantiaMaoObraDias||30}"></div></div><div class="actions"><button class="btn goldbtn" onclick="st.config.garantiaPecasDias=n($('cfg_gar_pecas').value);st.config.garantiaMaoObraDias=n($('cfg_gar_mao').value);save()">Salvar garantias</button></div></div>`);
+};
