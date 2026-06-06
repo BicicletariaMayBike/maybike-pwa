@@ -457,3 +457,45 @@ config = function(){
   if(!box) return;
   box.insertAdjacentHTML('afterbegin', `<div class="card"><div class="head"><h3>V15.2 — Logo e garantias</h3><span class="pill">May Bike</span></div><div class="notice">Logo oficial integrada no login, menu e documentos. Garantia padrão: peças ${st.config.garantiaPecasDias||90} dias a partir da venda; mão de obra ${st.config.garantiaMaoObraDias||30} dias.</div><div class="form2"><div class="field"><label>Garantia peças do estoque (dias)</label><input id="cfg_gar_pecas" type="number" value="${st.config.garantiaPecasDias||90}"></div><div class="field"><label>Garantia mão de obra (dias)</label><input id="cfg_gar_mao" type="number" value="${st.config.garantiaMaoObraDias||30}"></div></div><div class="actions"><button class="btn goldbtn" onclick="st.config.garantiaPecasDias=n($('cfg_gar_pecas').value);st.config.garantiaMaoObraDias=n($('cfg_gar_mao').value);save()">Salvar garantias</button></div></div>`);
 };
+
+/* ===== PATCH V15.3 — LOGO PROPORCIONAL + DASHBOARD REFINADO ===== */
+(function(){
+  try{
+    const oldConfig = config;
+    config = function(){ oldConfig(); const h=document.querySelector('#p-config .card h3'); if(h) h.textContent='Configurações V15.3 Enterprise'; };
+  }catch(e){}
+  const oldLogoPrintHTML = (typeof logoPrintHTML==='function') ? logoPrintHTML : null;
+  logoPrintHTML = function(){return `<div class="print-logo-wrap"><img class="logo-mini-print" src="icons/maybike-logo-horizontal.png"><div><b>WhatsApp:</b> (42) 98842-5435 &nbsp; | &nbsp; <b>E-mail:</b> maybikee@gmail.com</div><div><b>Sua bike. Seu estilo.</b></div></div>`}
+  dashboard = function(){
+    migrateV13();
+    let m=monthKey(today()), ano=today().slice(0,4);
+    let vendasMes=st.vendas.filter(v=>monthKey(v.data)==m), vendasAno=st.vendas.filter(v=>(v.data||'').slice(0,4)==ano);
+    let fatMes=vendasMes.reduce((a,v)=>a+n(v.total),0), fatAno=vendasAno.reduce((a,v)=>a+n(v.total),0), lucroMes=vendasMes.reduce((a,v)=>a+lucroVenda(v),0);
+    let crit=st.estoque.filter(e=>n(e.qtd)<=n(e.min)).length;
+    let vencidas=st.contas.filter(c=>c.status!='Pago'&&daysLate(c.venc)>0).length;
+    let prontas=st.os.filter(o=>o.status=='Pronta para retirada').length;
+    let meta=n(st.config.metaMensal||30000), perc=meta?Math.min(100,(fatMes/meta*100)):0;
+    let abc=curvaABC(); let parados=produtosParados(180);
+    let garantiasVencer=(st.garantias||[]).filter(g=>g.status!='Vencida'&&g.fim&&((new Date(g.fim)-new Date(today()))/86400000)<=10&&((new Date(g.fim)-new Date(today()))/86400000)>=0).length;
+    let revisoes=st.clientes.filter(c=>{let oss=st.os.filter(o=>o.cliente==c.nome&&o.status=='Faturada').sort((a,b)=>(b.data||'').localeCompare(a.data||'')); if(!oss[0]) return false; return Math.floor((new Date(today())-new Date(oss[0].data||today()))/86400000)>=n(st.config.revisaoDias||120)}).length;
+    let rank=servicoRanking().slice(0,5).map(([s,q],i)=>`<tr><td>${i+1}º</td><td>${s}</td><td>${q}</td><td>${money((st.vendas||[]).filter(v=>(v.itens||[]).some(it=>(it.nome||it.desc)==s)).reduce((a,v)=>a+n(v.total),0))}</td></tr>`).join('');
+    $('p-dashboard').innerHTML=`
+      <div class="card dash-search"><div class="head"><h3 class="gold">Busca global V15</h3><select style="max-width:310px"><option>Código, cliente, produto, OS ou bike</option></select></div><div class="form2"><input id="busca_global" placeholder="Digite um código ou nome. Ex: 000001, 100001, OS000001" oninput="buscaGlobal()"><button class="btn goldbtn" onclick="buscaGlobal()">🔍 Buscar</button></div><div id="busca_result" style="margin-top:12px"></div></div>
+      <div class="grid4">
+        <div class="metric"><div class="metric-icon green">💵</div><div class="label">Faturamento do mês</div><div class="value green">${money(fatMes)}</div><small class="green">+100% vs mês anterior</small></div>
+        <div class="metric"><div class="metric-icon green">📈</div><div class="label">Lucro estimado mês</div><div class="value ${lucroMes>=0?'green':'red'}">${money(lucroMes)}</div><small class="green">+100% vs mês anterior</small></div>
+        <div class="metric"><div class="metric-icon gold">🎯</div><div class="label">Meta mensal</div><div class="value gold">${perc.toFixed(0)}%</div><small>${money(fatMes)} / ${money(meta)}</small><div class="progress"><span style="width:${perc}%"></span></div></div>
+        <div class="metric"><div class="metric-icon green">📅</div><div class="label">Faturamento anual</div><div class="value green">${money(fatAno)}</div><small class="green">+100% vs ano anterior</small></div>
+      </div>
+      <div class="dash-small-grid">
+        <div class="metric"><div class="label">⚠️ Estoque crítico</div><div class="value red">${crit}</div><div>produtos</div></div>
+        <div class="metric"><div class="label">🔴 Contas vencidas</div><div class="value red">${vencidas}</div><div>contas</div></div>
+        <div class="metric"><div class="label">🚲 Bikes prontas</div><div class="value green">${prontas}</div><div>para retirada</div></div>
+        <div class="metric"><div class="label">🔔 Alertas</div><div class="alert-list"><div class="alert-line">⚠️ ${crit} produtos com estoque crítico <span>›</span></div><div class="alert-line">🔴 <b>${vencidas} contas vencidas</b> <span>›</span></div><div class="alert-line">🛡️ <b>${garantiasVencer} garantias próximas de vencer</b> <span>›</span></div><div class="alert-line">🔔 ${revisoes} revisão para lembrar <span>›</span></div></div></div>
+      </div>
+      <div class="grid2">
+        <div class="card"><div class="head"><h3>🛠️ Ranking de serviços</h3><button class="btn sm" onclick="go('relatorios')">Ver todos</button></div><table class="table"><thead><tr><th>#</th><th>Serviço</th><th>Quant.</th><th>Faturamento</th></tr></thead><tbody>${rank||'<tr><td colspan="4" class="empty">Sem serviços.</td></tr>'}</tbody><tfoot><tr><td colspan="3"><b>Total</b></td><td class="green"><b>${money(lucroMes)}</b></td></tr></tfoot></table></div>
+        <div class="card"><div class="head"><h3>📦 ABC de produtos</h3><button class="btn sm" onclick="go('relatorios')">Ver todos</button></div><table class="table"><thead><tr><th>Classe</th><th>Produtos</th><th>Faturamento</th><th>%</th></tr></thead><tbody><tr><td class="green"><b>A</b></td><td>${abc.A.qtd}</td><td>${money(abc.A.valor)}</td><td>${fatMes?((abc.A.valor/fatMes)*100).toFixed(2):'0,00'}%</td></tr><tr><td class="gold"><b>B</b></td><td>${abc.B.qtd}</td><td>${money(abc.B.valor)}</td><td>${fatMes?((abc.B.valor/fatMes)*100).toFixed(2):'0,00'}%</td></tr><tr><td class="red"><b>C</b></td><td>${abc.C.qtd}</td><td>${money(abc.C.valor)}</td><td>${fatMes?((abc.C.valor/fatMes)*100).toFixed(2):'0,00'}%</td></tr></tbody><tfoot><tr><td><b>Total</b></td><td class="green"><b>${abc.A.qtd+abc.B.qtd+abc.C.qtd}</b></td><td class="green"><b>${money(abc.A.valor+abc.B.valor+abc.C.valor)}</b></td><td class="green"><b>100,00%</b></td></tr></tfoot></table></div>
+      </div>`;
+  };
+})();
