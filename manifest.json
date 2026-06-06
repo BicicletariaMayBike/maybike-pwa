@@ -1,7 +1,7 @@
 {
   "name": "May Bike ERP",
   "short_name": "May Bike",
-  "description": "Sistema May Bike V15.3 com garantias, logo oficial, OS, vendas, estoque, financeiro e relatórios.",
+  "description": "Sistema May Bike V15.3 Corrigida com logo na OS, garantias, OS, vendas, estoque, financeiro e relatórios.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

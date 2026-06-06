@@ -1,8 +1,9 @@
-# May Bike ERP V15.3
+# May Bike ERP V15.3 Corrigida
 
-Atualização de refinamento visual e estabilidade.
+Correção focada na impressão da Ordem de Serviço.
 
-- Logo May Bike proporcional no login e menu lateral
-- Dashboard inicial refinado
-- Cache PWA atualizado
+- Logo May Bike aparece no cabeçalho da OS impressa
+- Slogan removido da OS impressa
+- Mantém WhatsApp e e-mail
+- Mantém garantias: peças 90 dias e mão de obra 30 dias
 - Mantém Firebase e dados existentes

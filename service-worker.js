@@ -1,4 +1,4 @@
-const CACHE_NAME = 'maybike-v15-3-pwa-cache-v1';
+const CACHE_NAME = 'maybike-v15-3-corrigida-cache-v2';
 const APP_SHELL = [
   './',
   './index.html',
@@ -8,7 +8,9 @@ const APP_SHELL = [
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  './icons/maybike-logo.png'
+  './icons/maybike-logo.png',
+  './icons/maybike-logo-horizontal.png',
+  './icons/maybike-logo-print.png'
 ];
 
 self.addEventListener('install', event => {
