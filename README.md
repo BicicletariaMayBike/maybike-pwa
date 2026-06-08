@@ -1,9 +1,11 @@
-# May Bike ERP V15.3 Corrigida
+# May Bike ERP V15.5
 
-Correção focada na impressão da Ordem de Serviço.
+Atualização com Documento de Venda e Garantia.
 
-- Logo May Bike aparece no cabeçalho da OS impressa
-- Slogan removido da OS impressa
-- Mantém WhatsApp e e-mail
-- Mantém garantias: peças 90 dias e mão de obra 30 dias
+- Documento interno de venda com logo May Bike
+- Número do quadro para bicicletas vendidas
+- Dados do cliente, produto, pagamento e garantia
+- Campos fiscais internos: NCM, CFOP, código de barras, NF-e/NFC-e nº
+- Histórico de bicicletas vendidas
+- Consulta por número do quadro na busca global
 - Mantém Firebase e dados existentes

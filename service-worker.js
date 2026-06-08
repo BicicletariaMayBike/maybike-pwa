@@ -10,6 +10,8 @@ const APP_SHELL = [
   './icons/icon-512.png',
   './icons/maybike-logo.png',
   './icons/maybike-logo-horizontal.png',
+  './icons/maybike-logo-print.png',
+  './icons/maybike-logo-horizontal.png',
   './icons/maybike-logo-print.png'
 ];
 
