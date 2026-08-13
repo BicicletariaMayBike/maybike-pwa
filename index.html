@@ -8,6 +8,7 @@
 <div id="p-dashboard" class="page active"></div><div id="p-clientes" class="page"></div><div id="p-bicicletas" class="page"></div><div id="p-funcionarios" class="page"></div><div id="p-maoobra" class="page"></div><div id="p-estoque" class="page"></div><div id="p-os" class="page"></div><div id="p-agenda" class="page"></div><div id="p-vendas" class="page"></div><div id="p-caixa" class="page"></div><div id="p-fechamento" class="page"></div><div id="p-inventario" class="page"></div><div id="p-dre" class="page"></div><div id="p-contas" class="page"></div><div id="p-garantias" class="page"></div><div id="p-crm" class="page"></div><div id="p-relatorios" class="page"></div><div id="p-auditoria" class="page"></div><div id="p-config" class="page"></div>
 </section></main></div><div id="modalbg" class="modalbg"><div id="modal" class="modal"></div></div><div id="print" class="print"></div>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="app.js?v=1556"></script>
-<script src="pwa.js?v=1556"></script>
-<script src="cliente-sem-cadastro.js?v=1556"></script></body></html>
+<script src="app.js?v=1557"></script>
+<script src="pwa.js?v=1557"></script>
+<script src="cliente-sem-cadastro.js?v=1557"></script>
+<script>document.addEventListener('click',function(e){var b=e.target.closest('button');if(b&&b.closest('#modal')&&(b.textContent||'').toLowerCase().indexOf('finalizar venda')>=0&&typeof window.saveVendaRapida==='function'){e.preventDefault();e.stopImmediatePropagation();window.saveVendaRapida();}},true);</script></body></html>
