@@ -1,12 +1,14 @@
-const CACHE_NAME = 'maybike-v15-5-pdv-cache-v4';
+const CACHE_NAME = 'maybike-v15-6-pdv-cache-v1';
 const APP_SHELL = [
   './',
   './index.html',
   './style.css',
-  './app.js?v=1558',
-  './pwa.js?v=1558',
-  './cliente-sem-cadastro.js?v=1558',
-  './hotfix-v155.js?v=1558',
+  './app.js?v=1562',
+  './pwa.js?v=1562',
+  './cliente-sem-cadastro.js?v=1562',
+  './hotfix-v155.js?v=1562',
+  './hotfix-modulos-v155.js?v=1562',
+  './v156-estavel.js?v=1562',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
