@@ -1,105 +1,22 @@
-/* May Bike V15.5 - Hotfix de estabilidade
-   Corrige funcoes auxiliares removidas em atualizacoes anteriores.
-   Mantem o mesmo objeto st e o mesmo documento Firestore para preservar dados. */
+/* May Bike V15.5 - Hotfix de estabilidade */
 (function(){
-  'use strict';
-
-  function ensureArray(key){
-    if(!Array.isArray(st[key])) st[key]=[];
-    return st[key];
-  }
-
-  // CRUD base usado por Clientes, Funcionarios, Mao de Obra, Estoque e OS.
-  window.upsert = function(key,obj){
-    const arr=ensureArray(key);
-    const i=arr.findIndex(x=>x && x.id===obj.id);
-    if(i>=0) arr[i]={...arr[i],...obj};
-    else arr.push(obj);
-    return obj;
-  };
-
-  window.del = function(key,id){
-    const arr=ensureArray(key);
-    const item=arr.find(x=>x && x.id===id);
-    if(!item) return;
-    if(!confirm('Deseja realmente excluir este registro?')) return;
-    st[key]=arr.filter(x=>x && x.id!==id);
-    if(typeof logAudit==='function'){
-      try{ logAudit('Registro excluido', key+' / '+id); }catch(e){}
-    }
-    save();
-  };
-
-  // Lancamento central de caixa, usado pelas vendas V15.5.
-  window.addCaixa = function(tipo,valor,desc,cat,forma){
-    ensureArray('caixa').push({
-      id:uid(), data:today(), tipo:tipo||'Entrada', valor:n(valor),
-      desc:desc||'', cat:cat||'Geral', forma:forma||''
-    });
-  };
-
-  window.caixa = function(){
-    const box=$('p-caixa');
-    if(!box) return;
-    const movimentos=ensureArray('caixa').slice().sort((a,b)=>((b.data||'')+(b.id||'')).localeCompare((a.data||'')+(a.id||'')));
-    const ent=movimentos.filter(x=>x.tipo==='Entrada').reduce((a,x)=>a+n(x.valor),0);
-    const sai=movimentos.filter(x=>x.tipo==='Saída'||x.tipo==='Saida').reduce((a,x)=>a+n(x.valor),0);
-    const hoje=today();
-    const hojeMov=movimentos.filter(x=>x.data===hoje);
-    const entHoje=hojeMov.filter(x=>x.tipo==='Entrada').reduce((a,x)=>a+n(x.valor),0);
-    const saiHoje=hojeMov.filter(x=>x.tipo==='Saída'||x.tipo==='Saida').reduce((a,x)=>a+n(x.valor),0);
-    const rows=movimentos.map(x=>`<tr><td>${br(x.data)}</td><td><span class="badge ${x.tipo==='Entrada'?'b3':'b5'}">${x.tipo||'—'}</span></td><td>${x.desc||'—'}</td><td>${x.cat||'—'}</td><td>${x.forma||'—'}</td><td class="${x.tipo==='Entrada'?'green':'red'}"><b>${money(x.valor)}</b></td></tr>`).join('');
-    box.innerHTML=`
-      <div class="grid4">
-        <div class="metric"><div class="label">Entradas hoje</div><div class="value green">${money(entHoje)}</div></div>
-        <div class="metric"><div class="label">Saídas hoje</div><div class="value red">${money(saiHoje)}</div></div>
-        <div class="metric"><div class="label">Saldo hoje</div><div class="value ${entHoje-saiHoje>=0?'green':'red'}">${money(entHoje-saiHoje)}</div></div>
-        <div class="metric"><div class="label">Saldo acumulado</div><div class="value ${ent-sai>=0?'green':'red'}">${money(ent-sai)}</div></div>
-      </div>
-      <div class="card">
-        <div class="head"><h3>Movimentações do Caixa</h3><span class="pill">${movimentos.length} lançamento(s)</span></div>
-        <table class="table"><thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th>Categoria</th><th>Forma</th><th>Valor</th></tr></thead><tbody>${rows||'<tr><td colspan="6" class="empty">Nenhuma movimentação no caixa.</td></tr>'}</tbody></table>
-      </div>`;
-  };
-
-  // Protege sequencias exigidas pela V15.5 antes de qualquer venda.
-  function ensureSequences(){
-    st.seqVenda=Math.max(1,n(st.seqVenda)||1);
-    st.seqDocumento=Math.max(1,n(st.seqDocumento)||1);
-    st.vendas=Array.isArray(st.vendas)?st.vendas:[];
-    st.caixa=Array.isArray(st.caixa)?st.caixa:[];
-    st.contas=Array.isArray(st.contas)?st.contas:[];
-    st.estoque=Array.isArray(st.estoque)?st.estoque:[];
-  }
-
-  const oldOpenVenda=window.openVendaRapida;
-  if(typeof oldOpenVenda==='function'){
-    window.openVendaRapida=function(){ ensureSequences(); return oldOpenVenda.apply(this,arguments); };
-  }
-
-  // Exibe confirmacao e oferece recibo/documento apos uma venda realmente criada.
-  const oldSaveVenda=window.saveVendaRapida;
-  if(typeof oldSaveVenda==='function'){
-    window.saveVendaRapida=function(){
-      ensureSequences();
-      const before=(st.vendas||[]).length;
-      const result=oldSaveVenda.apply(this,arguments);
-      const after=(st.vendas||[]).length;
-      if(after>before){
-        const v=st.vendas[after-1];
-        setTimeout(()=>{
-          try{
-            if(confirm('Venda finalizada com sucesso. Deseja gerar o recibo agora?')){
-              if(typeof window.printRec==='function') window.printRec(v.id);
-              else if(typeof window.printDocumentoVenda==='function') window.printDocumentoVenda(v.id);
-            }
-          }catch(e){console.warn('recibo:',e)}
-        },450);
-      }
-      return result;
-    };
-  }
-
-  // Reaplica o render da tela atual apos o hotfix carregar.
-  try{ ensureSequences(); if(typeof current!=='undefined' && current && typeof render==='function') render(current); }catch(e){console.warn('May Bike hotfix:',e)}
+'use strict';
+function ensureArray(key){if(!Array.isArray(st[key]))st[key]=[];return st[key]}
+window.upsert=function(key,obj){const arr=ensureArray(key),i=arr.findIndex(x=>x&&x.id===obj.id);if(i>=0)arr[i]={...arr[i],...obj};else arr.push(obj);return obj};
+window.del=function(key,id){const arr=ensureArray(key),item=arr.find(x=>x&&x.id===id);if(!item)return;if(!confirm('Deseja realmente excluir este registro?'))return;st[key]=arr.filter(x=>x&&x.id!==id);if(typeof logAudit==='function'){try{logAudit('Registro excluido',key+' / '+id)}catch(e){}}save()};
+window.addCaixa=function(tipo,valor,desc,cat,forma){ensureArray('caixa').push({id:uid(),data:today(),tipo:tipo||'Entrada',valor:n(valor),desc:desc||'',cat:cat||'Geral',forma:forma||''})};
+window.caixa=function(){const box=$('p-caixa');if(!box)return;const movimentos=ensureArray('caixa').slice().sort((a,b)=>((b.data||'')+(b.id||'')).localeCompare((a.data||'')+(a.id||'')));const ent=movimentos.filter(x=>x.tipo==='Entrada').reduce((a,x)=>a+n(x.valor),0),sai=movimentos.filter(x=>x.tipo==='Saída'||x.tipo==='Saida').reduce((a,x)=>a+n(x.valor),0),hoje=today(),hm=movimentos.filter(x=>x.data===hoje),eh=hm.filter(x=>x.tipo==='Entrada').reduce((a,x)=>a+n(x.valor),0),sh=hm.filter(x=>x.tipo==='Saída'||x.tipo==='Saida').reduce((a,x)=>a+n(x.valor),0);const rows=movimentos.map(x=>`<tr><td>${br(x.data)}</td><td>${x.tipo||'—'}</td><td>${x.desc||'—'}</td><td>${x.cat||'—'}</td><td>${x.forma||'—'}</td><td><b>${money(x.valor)}</b></td></tr>`).join('');box.innerHTML=`<div class="grid4"><div class="metric"><div class="label">Entradas hoje</div><div class="value green">${money(eh)}</div></div><div class="metric"><div class="label">Saídas hoje</div><div class="value red">${money(sh)}</div></div><div class="metric"><div class="label">Saldo hoje</div><div class="value">${money(eh-sh)}</div></div><div class="metric"><div class="label">Saldo acumulado</div><div class="value">${money(ent-sai)}</div></div></div><div class="card"><h3>Movimentações do Caixa</h3><table class="table"><thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th>Categoria</th><th>Forma</th><th>Valor</th></tr></thead><tbody>${rows||'<tr><td colspan="6" class="empty">Nenhuma movimentação no caixa.</td></tr>'}</tbody></table></div>`};
+function vendaDate(v){return String(v.data||v.dataVenda||v.createdAt||'').slice(0,10)}
+function vendaItens(v){return Array.isArray(v.itens)?v.itens:[]}
+function vendaCliente(v){return v.cliente||v.clienteNome||v.nomeCliente||'Cliente sem cadastro'}
+function vendaForma(v){return v.forma||v.formaPagamento||v.pagamento||'—'}
+function vendaNumero(v){return v.num||v.numero||v.seq||'—'}
+function relPeriodo(){const ini=$('relIni')?.value||today().slice(0,8)+'01',fim=$('relFim')?.value||today();if(ini>fim){alert('A data inicial não pode ser maior que a data final.');return}const vendas=ensureArray('vendas').filter(v=>{const d=vendaDate(v);return d&&d>=ini&&d<=fim}).sort((a,b)=>vendaDate(b).localeCompare(vendaDate(a)));const total=vendas.reduce((a,v)=>a+n(v.total),0),desconto=vendas.reduce((a,v)=>a+n(v.desc||v.desconto),0),ticket=vendas.length?total/vendas.length:0;let itensQtd=0;vendas.forEach(v=>vendaItens(v).forEach(i=>itensQtd+=n(i.qtd||1)));const formas={};vendas.forEach(v=>{const f=vendaForma(v);formas[f]=(formas[f]||0)+n(v.total)});const formaRows=Object.entries(formas).sort((a,b)=>b[1]-a[1]).map(([f,val])=>`<tr><td>${f}</td><td><b>${money(val)}</b></td></tr>`).join('');const rows=vendas.map(v=>{const itens=vendaItens(v).map(i=>`${n(i.qtd||1)}x ${i.nome||i.desc||i.produto||'Item'}`).join('<br>')||'—';return `<tr><td>${br(vendaDate(v))}</td><td>#${vendaNumero(v)}</td><td>${vendaCliente(v)}</td><td>${itens}</td><td>${vendaForma(v)}</td><td>${money(v.desc||v.desconto)}</td><td><b>${money(v.total)}</b></td></tr>`}).join('');const out=$('relResultado');if(out)out.innerHTML=`<div class="grid4"><div class="metric"><div class="label">Vendas no período</div><div class="value blue">${vendas.length}</div></div><div class="metric"><div class="label">Faturamento</div><div class="value green">${money(total)}</div></div><div class="metric"><div class="label">Ticket médio</div><div class="value gold">${money(ticket)}</div></div><div class="metric"><div class="label">Itens vendidos</div><div class="value">${itensQtd}</div></div></div><div class="grid2"><div class="card"><h3>Resumo</h3><p><b>Período:</b> ${br(ini)} até ${br(fim)}</p><p><b>Descontos concedidos:</b> ${money(desconto)}</p><p><b>Total faturado:</b> ${money(total)}</p></div><div class="card"><h3>Por forma de pagamento</h3><table class="table"><tbody>${formaRows||'<tr><td class="empty">Sem vendas no período.</td></tr>'}</tbody></table></div></div><div class="card"><div class="head"><h3>Vendas detalhadas</h3><button class="btn sm" onclick="exportRelVendas()">Exportar CSV</button></div><div style="overflow:auto"><table class="table"><thead><tr><th>Data</th><th>Venda</th><th>Cliente</th><th>Produtos / Serviços</th><th>Pagamento</th><th>Desconto</th><th>Total</th></tr></thead><tbody>${rows||'<tr><td colspan="7" class="empty">Nenhuma venda encontrada neste período.</td></tr>'}</tbody></table></div></div>`;window.__relVendas=vendas}
+window.filtrarRelVendas=relPeriodo;
+window.exportRelVendas=function(){const vendas=window.__relVendas||[];const rows=[['Data','Venda','Cliente','Itens','Forma de pagamento','Desconto','Total']];vendas.forEach(v=>rows.push([br(vendaDate(v)),vendaNumero(v),vendaCliente(v),vendaItens(v).map(i=>(n(i.qtd||1)+'x '+(i.nome||i.desc||i.produto||'Item'))).join(' | '),vendaForma(v),n(v.desc||v.desconto).toFixed(2),n(v.total).toFixed(2)]));if(typeof csvDownload==='function')csvDownload('relatorio-vendas.csv',rows)};
+window.relatorios=function(){const box=$('p-relatorios');if(!box)return;const primeiro=today().slice(0,8)+'01';box.innerHTML=`<div class="card"><div class="head"><div><h3>Relatório detalhado de vendas</h3><div style="color:var(--mut);margin-top:4px">Selecione o período que deseja analisar.</div></div></div><div class="grid3"><div class="field"><label>Data inicial</label><input id="relIni" type="date" value="${primeiro}"></div><div class="field"><label>Data final</label><input id="relFim" type="date" value="${today()}"></div><div class="field"><label>&nbsp;</label><button class="btn goldbtn" style="width:100%" onclick="filtrarRelVendas()">Gerar relatório</button></div></div></div><div id="relResultado"></div>`;setTimeout(relPeriodo,0)};
+function ensureSequences(){st.seqVenda=Math.max(1,n(st.seqVenda)||1);st.seqDocumento=Math.max(1,n(st.seqDocumento)||1);['vendas','caixa','contas','estoque'].forEach(ensureArray)}
+const oldOpenVenda=window.openVendaRapida;if(typeof oldOpenVenda==='function')window.openVendaRapida=function(){ensureSequences();return oldOpenVenda.apply(this,arguments)};
+const oldSaveVenda=window.saveVendaRapida;if(typeof oldSaveVenda==='function')window.saveVendaRapida=function(){ensureSequences();const before=st.vendas.length,result=oldSaveVenda.apply(this,arguments),after=st.vendas.length;if(after>before){const v=st.vendas[after-1];setTimeout(()=>{try{if(confirm('Venda finalizada com sucesso. Deseja gerar o recibo agora?')){if(typeof window.printRec==='function')window.printRec(v.id);else if(typeof window.printDocumentoVenda==='function')window.printDocumentoVenda(v.id)}}catch(e){}},450)}return result};
+try{ensureSequences();if(typeof current!=='undefined'&&current&&typeof render==='function')render(current)}catch(e){console.warn('May Bike hotfix:',e)}
 })();
