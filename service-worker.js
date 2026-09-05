@@ -1,10 +1,10 @@
-const CACHE_NAME = 'maybike-v17-pdv-cache-v5';
+const CACHE_NAME = 'maybike-v18-pdv-cache-v1';
 const APP_SHELL = [
   './','./index.html','./style.css',
-  './app.js?v=1704','./pwa.js?v=1704','./hotfix-v155.js?v=1704','./hotfix-modulos-v155.js?v=1704',
-  './v156-estavel.js?v=1704','./v156-movimentacoes-caixa.js?v=1704','./v160-venda.js?v=1704','./v161-recibo.js?v=1704',
-  './v161-os-separadas.js?v=1704','./v170-gestao.js?v=1704','./v170-fix-mao-duplicada.js?v=1704','./v1702-os-itens-separados.js?v=1704',
-  './v1703-impressao-profissional.js?v=1704','./v1704-faturamento-os.js?v=1704',
+  './app.js?v=1800','./pwa.js?v=1800','./hotfix-v155.js?v=1800','./hotfix-modulos-v155.js?v=1800',
+  './v156-estavel.js?v=1800','./v156-movimentacoes-caixa.js?v=1800','./v160-venda.js?v=1800','./v161-recibo.js?v=1800',
+  './v161-os-separadas.js?v=1800','./v170-gestao.js?v=1800','./v170-fix-mao-duplicada.js?v=1800','./v1702-os-itens-separados.js?v=1800',
+  './v1703-impressao-profissional.js?v=1800','./v1704-faturamento-os.js?v=1800','./v180-creditos-recibos.js?v=1800','./v180-recibos.js?v=1800','./v180-crm.js?v=1800',
   './manifest.json','./icons/icon-192.png','./icons/icon-512.png','./icons/maybike-logo.png','./icons/maybike-logo-horizontal.png','./icons/maybike-logo-print.png'
 ];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(APP_SHELL)));self.skipWaiting();});
