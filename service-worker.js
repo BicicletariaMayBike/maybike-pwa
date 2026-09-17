@@ -1,10 +1,10 @@
-const CACHE_NAME = 'maybike-v18-pdv-cache-v7';
+const CACHE_NAME = 'maybike-v18-pdv-cache-v8';
 const APP_SHELL = [
   './','./index.html','./style.css',
-  './app.js?v=1813','./pwa.js?v=1813','./hotfix-v155.js?v=1813','./hotfix-modulos-v155.js?v=1813',
-  './v156-estavel.js?v=1813','./v156-movimentacoes-caixa.js?v=1813','./v160-venda.js?v=1813','./v161-recibo.js?v=1813',
-  './v161-os-separadas.js?v=1813','./v170-gestao.js?v=1813','./v170-fix-mao-duplicada.js?v=1813','./v1702-os-itens-separados.js?v=1813',
-  './v1703-impressao-profissional.js?v=1813','./v1704-faturamento-os.js?v=1813','./v180-creditos-recibos.js?v=1813','./v180-recibos.js?v=1813','./v180-crm.js?v=1813','./v1801-bike-venda.js?v=1813','./v1802-sync.js?v=1813','./v1803-recovery.js?v=1813','./v1804-cloudfix.js?v=1813','./v1810-montagens.js?v=1813',
+  './app.js?v=1815','./pwa.js?v=1815','./hotfix-v155.js?v=1815','./hotfix-modulos-v155.js?v=1815',
+  './v156-estavel.js?v=1815','./v156-movimentacoes-caixa.js?v=1815','./v160-venda.js?v=1815','./v161-recibo.js?v=1815',
+  './v161-os-separadas.js?v=1815','./v170-gestao.js?v=1815','./v170-fix-mao-duplicada.js?v=1815','./v1702-os-itens-separados.js?v=1815',
+  './v1703-impressao-profissional.js?v=1815','./v1704-faturamento-os.js?v=1815','./v180-creditos-recibos.js?v=1815','./v180-recibos.js?v=1815','./v180-crm.js?v=1815','./v1801-bike-venda.js?v=1815','./v1802-sync.js?v=1815','./v1803-recovery.js?v=1815','./v1804-cloudfix.js?v=1815','./v1810-montagens.js?v=1815',
   './manifest.json','./icons/icon-192.png','./icons/icon-512.png','./icons/maybike-logo.png','./icons/maybike-logo-horizontal.png','./icons/maybike-logo-print.png'
 ];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(APP_SHELL)));self.skipWaiting();});
