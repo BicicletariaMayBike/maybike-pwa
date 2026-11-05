@@ -14,8 +14,36 @@ function backup(label,obj){try{let a=JSON.parse(localStorage.getItem(BACKUP_KEY)
 function setStatus(txt,title){const el=document.getElementById('cloud');if(el){el.textContent=txt;if(title)el.title=title}const info=document.getElementById('v1802-sync-info');if(info)info.textContent=title||txt}
 function persistLocal(){try{localStorage.setItem(STORE_KEY,JSON.stringify(st))}catch(e){console.error(e)}}
 function ensureButton(){if(document.getElementById('v1802-sync-btn'))return;const cloud=document.getElementById('cloud');if(!cloud)return;const b=document.createElement('button');b.id='v1802-sync-btn';b.className='btn';b.textContent='🔄 Sincronizar';b.title='Buscar dados da nuvem e enviar registros locais que ainda não estão sincronizados';b.onclick=()=>window.v1802SyncNow(true);cloud.insertAdjacentElement('afterend',b);const i=document.createElement('span');i.id='v1802-sync-info';i.className='pill';i.style.display='none';b.insertAdjacentElement('afterend',i)}
-async function getRemote(){if(typeof cloudOK==='undefined'||!cloudOK||typeof db==='undefined'||!db)throw new Error('Firebase indisponível');const doc=await db.collection('maybike').doc(SYNC_DOC).get();return doc.exists?doc.data():null}
-async function putRemote(data){await db.collection('maybike').doc(SYNC_DOC).set(clone(data))}
+const CHUNK_META='state_v10_meta',CHUNK_PREFIX='state_v10_chunk_',CHUNK_SIZE=700000;
+async function getRemote(){
+ if(typeof cloudOK==='undefined'||!cloudOK||typeof db==='undefined'||!db)throw new Error('Firebase indisponível');
+ const col=db.collection('maybike'),metaSnap=await col.doc(CHUNK_META).get();
+ if(metaSnap.exists){
+  const meta=metaSnap.data()||{},count=Number(meta.chunks||0);
+  if(!Number.isInteger(count)||count<1||count>500)throw new Error('Metadados da sincronização dividida inválidos.');
+  const snaps=await Promise.all(Array.from({length:count},(_,i)=>col.doc(CHUNK_PREFIX+i).get()));
+  let json='';
+  snaps.forEach((s,i)=>{if(!s.exists)throw new Error('Parte '+(i+1)+' dos dados não encontrada na nuvem.');json+=(s.data()||{}).part||''});
+  try{return JSON.parse(json)}catch(e){throw new Error('Não foi possível reconstruir os dados da nuvem: '+e.message)}
+ }
+ const legacy=await col.doc(SYNC_DOC).get();
+ return legacy.exists?legacy.data():null;
+}
+async function putRemote(data){
+ if(typeof db==='undefined'||!db)throw new Error('Firestore não inicializado');
+ const json=JSON.stringify(clone(data)),parts=[];
+ for(let i=0;i<json.length;){
+  let end=Math.min(i+CHUNK_SIZE,json.length);
+  if(end<json.length){const code=json.charCodeAt(end-1);if(code>=0xD800&&code<=0xDBFF)end--;}
+  parts.push(json.slice(i,end));i=end;
+ }
+ if(!parts.length)parts.push('{}');
+ if(parts.length>499)throw new Error('Banco muito grande para sincronização em uma única operação ('+parts.length+' partes).');
+ const col=db.collection('maybike'),batch=db.batch();
+ parts.forEach((part,i)=>batch.set(col.doc(CHUNK_PREFIX+i),{part,index:i,updatedAt:nowISO()}));
+ batch.set(col.doc(CHUNK_META),{version:10,chunks:parts.length,chars:json.length,updatedAt:nowISO()});
+ await batch.commit();
+}
 async function doLoad(){ensureButton();let local={};try{const raw=localStorage.getItem(STORE_KEY);if(raw)local=JSON.parse(raw)}catch(e){}
 if(typeof loadLocal==='function')try{loadLocal();local=clone(st)}catch(e){}
 backup('antes de carregar nuvem',local);
